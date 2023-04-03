@@ -94,6 +94,8 @@ ntail = 8
 lipid_tail_h = collect(2.5*(1.0 .- (0:ntail)/(1.005*ntail)))
 tailwobble = lift(s->vcat(0.0, rand(4)/16.0), t)
 
+scatter!(ax_image, lift(s->[Point2f((rand().-0.5)*view_wide, 2.5.+rand()*16) for i in 1:5000],t), color = :darkgoldenrod, markersize = 4)
+scatter!(ax_image, lift(s->[Point2f((rand().-0.5)*view_wide, -2.5.-rand()*16) for i in 1:5000],t), color = :magenta, markersize = 4)
 
 scatter!(ax_image,x_pos+hwobble, head_high+vwobble, markersize = 22, color = :bisque, strokewidth = 1.0, strokecolor = :silver)
 
@@ -113,9 +115,32 @@ for i in 1:length(x_pos)
     end
 end
 
-ablob = Observable(Point2f[(-20.0, -4.0), (-20.0, 4.0), (-18.0, 4.0), (-18.0, -4.0)])
-s4 = poly!(ax_image,lift(s->Point2f(randn()*h_noise_ampl,randn()*v_noise_ampl), t)+ablob, color = :blue, strokecolor = :black, strokewidth = 1)
 
+
+
+
+CaV_location = -15.0
+ΔCavS3 = 3.0
+ΔCavS4 = 1.5
+CaV_open = 1.6
+CaV_closed = 1.3
+CaV_state = Observable(CaV_closed)
+
+sausage3a = Observable(Point2f[(CaV_location - ΔCavS3, -4.0), (CaV_location - ΔCavS3, 4.0), (CaV_location - ΔCavS3+2.0, 4.0), (CaV_location-ΔCavS3+2.0, -4.0)])
+sausage4a = Observable(Point2f[(CaV_location - ΔCavS4, -3.5), (CaV_location-ΔCavS4, 3.5), (CaV_location-ΔCavS4+1.0, 3.5), (CaV_location-ΔCavS4+1.0, -3.5)])
+sausage3b = Observable(Point2f[(CaV_location + ΔCavS3, -4.0), (CaV_location + ΔCavS3, 4.0), (CaV_location + ΔCavS3-2.0, 4.0), (CaV_location+ΔCavS3-2.0, -4.0)])
+sausage4b = Observable(Point2f[(CaV_location + ΔCavS4, -3.5), (CaV_location+ΔCavS4, 3.5), (CaV_location+ΔCavS4-1.0, 3.5), (CaV_location+ΔCavS4-1.0, -3.5)])
+poresauce = Observable(Point2f[(CaV_location - 1.0, -3.5), (CaV_location-1.0, 3.5), (CaV_location+1.0, 3.5), (CaV_location+1.0, -3.5)])
+
+jitter = lift(s->Point2f(randn()*h_noise_ampl,randn()*v_noise_ampl),t)
+pore = poly!(ax_image,poresauce, color = :lightblue)
+s6a = scatter!(ax_image, lift(s->Point2f(CaV_location-CaV_state[], 0.0)+jitter[],t), markersize = 75, color = :darkslategrey)
+s6b = scatter!(ax_image, lift(s->Point2f(CaV_location+CaV_state[], 0.0)+jitter[],t), markersize = 75, color = :darkslategrey)
+
+s3a = poly!(ax_image,jitter+sausage3a, color = :darkolivegreen)
+s4a = poly!(ax_image,jitter+sausage4a, color = :teal)
+s3b = poly!(ax_image,jitter+sausage3b, color = :darkolivegreen)
+s4b = poly!(ax_image,jitter+sausage4b, color = :teal)
 
 #hidedecorations!(ax_image)
 
