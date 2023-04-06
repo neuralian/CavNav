@@ -3,69 +3,24 @@
 using GLMakie
 using Colors
 
-import Base.+
-function +(a::Float64, b::Observable)
-    # float + observable
-    lift(s->a.+b[],t)
-end
-
-function +(a::Array{Float64}, b::Observable)
-    # float array + observable
-    lift(s->a.+b[],t)
-end
-
-function +(a::Observable, b::Observable)
-    # observable + observable
-    lift(s->a[].+b[],t)
-end
-
-function +(p::Point{2,Float32}, verts::Observable{Vector{Point{2, Float32}}})
-    # point + observable vertices
-    lift(s->[p + v for v in verts[]],t)
-end
-
-function +(p::Observable{Point{2,Float32}}, verts::Observable{Vector{Point{2, Float32}}})
-    # observable point + observable vertices
-    lift(s->[p[] + v for v in verts[]],t)
-end
-
-function +(p::Point{2,Float32}, q::Observable{Point{2, Float32}})
-    # observable point + observable vertices
-    lift(s->p+q[],t)
-end
-
-import Base.*
-function *(a::Float64, b::Observable)
-    lift(s->a*b[],t)
-end
-
-# animation utilities
-function move(verts::Observable{Vector{Point{2, Float32}}}, p::Point{2,Float32})
-    # returns shifted vertices (not updated observable)
-    (p + verts)[]
-end
-
-
-
+include("Neuranimation_Tools.jl") 
 
 px_per_nm = 30.0    # pixels per nm
 px_wide = 1920
 px_high = 1080
-
 
 view_wide = px_wide/px_per_nm
 view_high = px_high/px_per_nm
 
 
 fig = Figure(resolution = (px_wide,px_high), backgroundcolor = :lightgrey)
-ax_image = fig[1,1] = Axis(fig, 
-    backgroundcolor = :lightblue,
-   # targetlimits = BBox(-10, 10, -10, 10),
-    aspect = 16.0/9.0,
-    )
-    xlims!(ax_image, [-32, 32])
-    ylims!(ax_image, [-18, 18])
-    #hidedecorations!(ax_image)
+ax_image = fig[1,1] = Axis( fig, 
+                            backgroundcolor = :lightblue,
+                            aspect = 16.0/9.0,
+                            )
+xlims!(ax_image, [-32, 32])
+ylims!(ax_image, [-18, 18])
+hidedecorations!(ax_image)
 
 ax_current = fig[2,1] = Axis(fig)
 rowsize!(fig.layout, 2, Fixed(100))
@@ -78,126 +33,63 @@ display(fig)
 
 t = Observable(0.0)
 
+# lipid bilayer parameters
+head_width= .5
+tail_length = 1.5   # height of lipid head above 0 = middle of membrane
+apical_membrane_y = 8.0
 
-mutable struct Component
-    # parent of root component is nothing (of type Nothing)
-    # root component moves in Axis frame, other components move in their parent frame
-    # Component is invisible if its colour is nothing
-    name:: String
-    parent::Union{Component, Nothing} 
-    child::Vector{Component}
-    vertex::Vector{Point{2, Float32}}
-    restpos::Vector{Point{2, Float32}}      # rest/default location in parent frame (can be per state)
-    pos::Observable{Point{2, Float32}}      # current location in parent frame
-    Θ::Float32  # rotation
-    R::Float32  # scale
-    state::Int64  # countable states  
-    param::Vector{Float64}
-    colour::Union{RGB{Float64}, RGBA{Float64}, Symbol, Nothing}
-end
+# ions 
+nCa = 1000
+nK  = 1000
+draw_ions(ax_image, nCa, (-32., apical_membrane_y+tail_length*1.25, 64., 16.), colorant"darkgoldenrod", 8.)
+draw_ions(ax_image, nK, (-32., apical_membrane_y-tail_length*1.25, 64., -16.), colorant"magenta", 8.)
 
-# default constructor
-# invisible object at origin 
-# in state 1
-function Component(name::String)
-    Component(  name,
-                nothing,
-                [],
-                [Point2f(0.0,0.0)],
-                [Point2f(0.0, 0.0)],
-                Observable(Point2f(0.0, 0.0)),
-                0.0,
-                1.0,
-                1,
-                [],
-                nothing
-                )
-end
+draw_lipidbilayer(ax_image, apical_membrane_y, head_width, tail_length, (0.025, .1))
 
+# CaV channel
+CaVα1I_wide = 3.0   # width of α1.I subunit
 
-function draw(ax::Axis, component::Component)
-    # draw component and its children
-    if !(component.colour==nothing)
-        handle = poly!(ax, lift(s->[component.pos[]].+component.vertex, t), color = component.colour)
-    end
-    for child in component.child
-        draw(ax, child)
-    end
-    handle
-end
+CaV = Component("CaV")  # channel pore is parent of other components
+CaV.vertex = Point2f[(-.5, -4.0), (.5, -4.0), (.5, 4.0), (-.5, 4.0)]
+CaV.colour = :lightblue
+CaV.restpos[] = Point2f(-16.0, apical_membrane_y)
+CaV.pos = CaV.restpos[1]
 
-# function drawjitter(ax::Axis, component::Component, dx::Float64, dy::Float64)
-#     # draw component and its children
-#     if !(component.colour==nothing)
-#         handle = poly!(ax, lift(s->[component.pos[]+Point2f(dx*randn(), dy*randn())].+component.vertex, t), color = component.colour)
-#     end
-#     for child in component.child
-#         draw(ax, child)
-#     end
-#     handle
-# end
+#
+CaVα1I = Component("CaVα1.I")  # left α1 subunit, base element of CaV channel
+CaVα1I.vertex = pillShape(7.0, 2.0, 1.0)
+CaVα1I.colour = RGB(.9, .75, .4)
+CaVα1I.restpos[] = Point2f(-1.25, 0.0)  # position to left of pore
+CaVα1I.parent = CaV; adopt(CaVα1I)
 
-function randomstep(c::Component, dx::Float32, dy::Float32)
-    # random step
-    # repeated calls produce Brownian motion
-    J = Point2f([dx*randn(), dy*randn()])
-    move(c, J)
-    J
-end
+CaVα1II = mirrorCopy(CaVα1I, "CaVα1II")
+CaVα1II.colour =  RGB(.9, .75, .4)
+CaVα1II.restpos[] = Point2f(1.25, 0.0)  # position to right of pore
+CaVα1II.parent = CaV; adopt(CaVα1II)
 
-function stepback(c::Component, J::Point2f)
-    # reverse  step in random walk
-    # call this after rendering to put c back where it was before J=randomstep()
-    # to simulate thethered object buffetted by thermal noise 
-    # nb its just an alias for move()
-    move(c, J)
-end
-
-function adopt(me::Component)
-    # add shape to child list of its parent
-    # child must have a parent and children must have unique names
-    if !any(s->s==child.name, [me.parent.child[i].name for i in 1:length(me.parent.child)]) # if not already a child of parent
-        push!(me.parent.child, me)
-        me.pos = me.restpos[me.state] + me.parent.pos
-    end
-end
-
-function move(c::Component, v::Point{2, Float32})
-    # change position
-    c.pos = v + c.pos
-    for d in c.child
-        move(d,v)
-    end
-end
+# c1 = Component("C1")
+# c1.vertex = Point2f[(0.0, 0.0), (2.0, 0.0), (2.0, 3.0), (0.0, 3.0)]
+# c1.colour = :green
+# c1.parent = α1L; adopt(c1)
 
 
-base = Component("base")
-
-base.vertex = Point2f[(0.0, 0.0), (5.0, 0.0), (5.0, 5.0), (0.0, 5.0)]
-base.colour = :red
-
-c1 = Component("C1")
-c1.vertex = Point2f[(0.0, 0.0), (2.0, 0.0), (2.0, 3.0), (0.0, 3.0)]
-c1.colour = :green
-c1.parent = base; adopt(c1)
-
-
-draw(ax_image, base)
+draw(ax_image, CaV)
 #draw(ax_image, c1)
 
+#sleep(5)
 # animate
-framerate = 24
-nframes = 240
+framerate = 12
+nframes = 64
 for i in 1:nframes
   #  ablob[] = move(ablob, Point2f(randn()*h_noise_ampl,randn()*v_noise_ampl))
    # ablob[] = (Point2f(0.1,0.0)+ablob)[]
    #base.pos[] = base.restpos[base.state] + 0.1*randn(Point2f, 1)[]
-    move(c1, Point2f(.025, 0.0))
-    move(base, Point2f(0.0, .025))
-    J=randomstep(base, .1f0, .25f0)   # thermal noise perturbation
+   # move(c1, Point2f(.025, 0.0))
+   # move(CaV, Point2f(0.0, .025))
+    J=randomstep(CaV, .1f0, .25f0)   # thermal noise perturbation
     t[] = i
-    stepback(base, -J)     # reset perturbation after render (object is tethered)
-    sleep(1/framerate)
-    # yield()
+    stepback(CaV, -J)     # reset perturbation after render (object is tethered)
+    sleep(.1/framerate)
+    #yield()
 end
 
