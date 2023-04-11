@@ -57,6 +57,7 @@ mutable struct Component
     state::Int64  # countable states  
     param::Vector{Float64}
     colour::Union{RGB{Float64}, RGBA{Float64}, Symbol, Nothing}
+    outline::Float64    # strokecolor = RGBA(0,0,0,outline)
 end
 
 # default constructor
@@ -73,7 +74,8 @@ function Component(name::String)
                 1.0,
                 1,
                 [],
-                nothing
+                nothing,
+                0.0
                 )
 end
 
@@ -81,7 +83,7 @@ end
 function draw(ax::Axis, component::Component)
     # draw component and its children
     if !(component.colour==nothing)
-        poly!(ax, lift(s->[component.pos[]].+component.vertex, t), color = component.colour)
+        poly!(ax, lift(s->[component.pos[]].+component.vertex, t), color = component.colour, strokewidth = 2, strokecolor = RGBA(0,0,0,component.outline))
     end
     for child in component.child
         draw(ax, child)
