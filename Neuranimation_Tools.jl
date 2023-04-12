@@ -50,42 +50,40 @@ mutable struct Component
     parent::Union{Component, Nothing} 
     child::Vector{Component}
     vertex::Vector{Point{2, Float32}}
-    restpos::Vector{Point{2, Float32}}      # rest/default location in parent frame (can be per state)
-    pos::Observable{Point{2, Float32}}      # current location in parent frame
-    Θ::Float32  # rotation
-    R::Float32  # scale
+    restpos::Vector{Point{2, Float32}}      # rest position in parent frame in ith state
+    pos::Observable{Point{2, Float32}}      # position in parent frame
+    Θ::Observable{Float32}                  # orientation in parent frame  
     state::Int64  # countable states  
     param::Vector{Float64}
-    colour::Union{RGB{Float64}, RGBA{Float64}, Symbol, Nothing}
-    outline::Float64    # strokecolor = RGBA(0,0,0,outline)
+    colour::Union{RGB{Float64}, Symbol}
+    visibility::Float64                     # displayed colour is RGBA(R,G,B, visibility)
+    outline::Float64                        # strokecolor = RGBA(0,0,0,outline)
 end
 
 # default constructor
 # invisible object at origin 
 # in state 1
 function Component(name::String)
-    Component(  name,
-                nothing,
-                [],
-                [Point2f(0.0,0.0)],
-                [Point2f(0.0, 0.0)],
-                Observable(Point2f(0.0, 0.0)),
-                0.0,
-                1.0,
-                1,
-                [],
-                nothing,
-                0.0
+    Component(  name,                           # name
+                nothing,                        # parent
+                [],                             # child
+                [Point2f(0.0,0.0)],             # vertex
+                [Point2f(0.0, 0.0)],            # restpos                    
+                Observable(Point2f(0.0, 0.0)),  # pos
+                Observable(0.0),                # orientation  
+                1,                              # state
+                [],                             # parameters
+                RGB(0.,0.,0.),                     # colour 
+                0.0,                            # invisible by default
+                0.0                             # stroke alpha (0=invisible)
                 )
 end
 
 
-function draw(ax::Axis, component::Component)
+function draw(ax::Axis, c::Component)
     # draw component and its children
-    if !(component.colour==nothing)
-        poly!(ax, lift(s->[component.pos[]].+component.vertex, t), color = component.colour, strokewidth = 2, strokecolor = RGBA(0,0,0,component.outline))
-    end
-    for child in component.child
+    poly!(ax, lift(s->[worldPos(c)].+c.vertex, t), color = c.colour, strokewidth = 2, strokecolor = RGBA(0,0,0,c.outline))
+    for child in c.child
         draw(ax, child)
     end
 end
@@ -122,15 +120,28 @@ function adopt(me::Component)
     # child must have a parent and children must have unique names
     if !any(s->s==me.name, [me.parent.child[i].name for i in 1:length(me.parent.child)]) # if not already a child of parent
         push!(me.parent.child, me)
-        me.pos = me.restpos[me.state] + me.parent.pos
+       # me.pos = me.restpos[me.state] + me.parent.pos
     end
 end
 
 function move(c::Component, v::Point{2, Float32})
     # change position
     c.pos = v + c.pos
-    for d in c.child
-        move(d,v)
+end
+
+function rotate(c::Component, p::Point{2, Float32}, Θ::Float64)
+     # rotate thru angle Θ around point p in parent frame
+     R = [cos(Θ) -sin(Θ); sin(Θ) cos(Θ)]
+    c.vertex = [Point2f(R*(v-c.restpos[1])) for v in c.vertex]
+     
+end
+
+function worldPos(c::Component)
+    # position and orientation of c in world (axis) reference frame
+    if c.parent==nothing
+        return c.pos[]
+    else
+      return c.pos[] + worldPos(c.parent)
     end
 end
 
@@ -197,8 +208,8 @@ function pillShape(w::Float64, h::Float64, r::Union{Float64, Tuple{Float64,Float
     
     append!(
     [Point2f(w-r[1]+r[1]*cos(k*π/(2*N)), h-r[1]+r[1]*sin(k*π/(2*N))) for k in 1:N],
-    [Point2f(-w-r[2]+r[2]*cos(k*π/(2*N)), h-r[2]+r[2]*sin(k*π/(2*N))) for k in (N+1):2*N],
-    [Point2f(-w-r[3]+r[3]*cos(k*π/(2*N)), -h+r[3]+r[3]*sin(k*π/(2*N))) for k in (2*N+1):3*N],
+    [Point2f(-w+r[2]+r[2]*cos(k*π/(2*N)), h-r[2]+r[2]*sin(k*π/(2*N))) for k in (N+1):2*N],
+    [Point2f(-w+r[3]+r[3]*cos(k*π/(2*N)), -h+r[3]+r[3]*sin(k*π/(2*N))) for k in (2*N+1):3*N],
     [Point2f(w-r[4]+r[4]*cos(k*π/(2*N)), -h+r[4]+r[4]*sin(k*π/(2*N))) for k in (3*N+1):4N]
     )
 

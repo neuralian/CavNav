@@ -18,8 +18,8 @@ ymax = 24.0
 fig = Figure(resolution = (px_wide,px_high), backgroundcolor = :lightgrey)
 G_animation = fig[1:3,1] = GridLayout()   # animations in top left quadrant
 G_trace     = fig[4,1] = GridLayout()   # voltage and current traces in bottom left
-G_diag      = fig[1,2] = GridLayout()   # diagram of receptor cell  top right
-G_controls  = fig[2,2] = GridLayout()   # controls bottom right
+G_diag      = fig[1:2,2] = GridLayout()   # diagram of receptor cell  top right
+G_controls  = fig[4,2] = GridLayout(tellwidth=false, tellheight=false)   # controls bottom right
 
 
 Ax_Animation = Axis(G_animation[1,1], 
@@ -37,6 +37,10 @@ Ax_voltageTrace = Axis(G_trace[2,1])
 #rowsize!(fig.layout, 3, Fixed(100))
 
 #colsize!(fig.layout, 1, Relative(.67))
+
+
+
+
 
 display(fig)
 
@@ -75,60 +79,75 @@ CaV.pos = CaV.restpos[1]
 
 # gate (s6)
 CaVs6I = Component("Cavs6.I")
-CaVs6I.vertex = pillShape(.25, 2.0*tail_length-1., .75)
+CaVs6I.vertex = pillShape(1.0, 2.0*tail_length-1., .45)
 CaVs6I.colour = RGB(.8, .7, .45)
-CaVs6I.restpos[] = Point2f(0.0,0.0)
+CaVs6I.restpos[] = Point2f(-0.5,0.0)
 CaVs6I.parent=CaV; adopt(CaVs6I)
 
 CaVs6II = Component("Cavs6.II")
-CaVs6II.vertex = pillShape(.25, 2.0*tail_length-1., .75)
+CaVs6II.vertex = pillShape(1.0, 2.0*tail_length-1., .45)
 CaVs6II.colour = RGB(.8, .7, .45)
-CaVs6II.restpos[] = Point2f(1.5,0.0)
+CaVs6II.restpos[] = Point2f(0.5,0.0)
 CaVs6II.parent=CaV; adopt(CaVs6II)
 
 #
 CaVα1I = Component("CaVα1.I")  # left α1 subunit, base element of CaV channel
-CaVα1I.vertex = pillShape(2.5, 2.0*(tail_length+1.25), (1.0, 1.5, 1.5, 2.0))
+CaVα1I.vertex = pillShape(3.5, 2.0*(tail_length+1.25), (1.0, 1.5, 1.5, 2.0))
 CaVα1I.colour = RGB(.9, .75, .4)
-CaVα1I.restpos[] = Point2f(-2.0, 0.0)  # position to left of pore
+CaVα1I.restpos[] = Point2f(-2.25, 0.0)  # position to left of pore
 CaVα1I.parent = CaV; adopt(CaVα1I)
 
 CaVα1II = mirrorCopy(CaVα1I, "CaVα1II")
 CaVα1II.colour =  RGB(.9, .75, .4)
-CaVα1II.restpos[] = Point2f(2.0, 0.0)  # position to right of pore
+CaVα1II.restpos[] = Point2f(2.25, 0.0)  # position to right of pore
 CaVα1II.parent = CaV; adopt(CaVα1II)
 
 # voltage sensor (s4)
 CaVs4I = Component("Cavs4.I")
-CaVs4I.vertex = pillShape(.25, 2.0*tail_length-1., .75)
+CaVs4I.vertex = pillShape(.65, 2.0*tail_length-1., .2)
 CaVs4I.colour = RGB(.9, .8, .55)
 CaVs4I.outline = .1
-CaVs4I.restpos[] = Point2f(-2.0,-1.0)
+CaVs4I.restpos[] = Point2f(-1.5,-0.75)
 CaVs4I.parent=CaV; adopt(CaVs4I)
 
 CaVs4II = Component("Cavs4.II")
-CaVs4II.vertex = pillShape(.25, 2.0*tail_length-1., .75)
+CaVs4II.vertex = pillShape(.65, 2.0*tail_length-1., .2)
 CaVs4II.colour = RGB(.9, .8, .55)
 CaVs4II.outline = .1
-CaVs4II.restpos[] = Point2f(3.0,-1.0)
+CaVs4II.restpos[] = Point2f(1.5,-0.75)
 CaVs4II.parent=CaV; adopt(CaVs4II)
 
-# inactivation gate
+# inactivation gate, ball and chain rotating around axis
+CaVIGa = Component("CaVIG.axis")
+CaVIGa.vertex = decompose(Point2f,Circle(Point2f(0,0), 0.25f0))
+CaVIGa.colour = RGB(.8, .7, .45)
+CaVIGa.restpos[] = Point2f(-2.5,-4.65)
+CaVIGa.parent=CaV; adopt(CaVIGa)
+
+CaVIGc = Component("CaVIG.chain")
+CaVIGc.vertex = pillShape(1.5, .5, .2)
+CaVIGc.colour = RGB(.8, .7, .45)
+CaVIGc.restpos[] = Point2f(0.75,0.0)
+CaVIGc.parent=CaVIGa; adopt(CaVIGc)
+
 CaVIG = Component("CaVIG")
-CaVIG.vertex = decompose(Point2f,Circle(Point2f(0,0), 2f0))
+CaVIG.vertex = decompose(Point2f,Circle(Point2f(0,0), 1.25f0))
 CaVIG.colour =RGB(.8, .7, .45)
-CaVIG.restpos[] = Point2f(0.0,-5.5)
-CaVIG.parent=CaV; adopt(CaVIG)
+CaVIG.restpos[] = Point2f(1.8,0.0)
+CaVIG.parent=CaVIGc; adopt(CaVIG)
 
-
-# c1 = Component("C1")
-# c1.vertex = Point2f[(0.0, 0.0), (2.0, 0.0), (2.0, 3.0), (0.0, 3.0)]
-# c1.colour = :green
-# c1.parent = α1L; adopt(c1)
 
 
 draw(Ax_Animation, CaV)
 #draw(Ax_Animation, c1)
+
+
+# controls
+#G_controls = buttongrid = GridLayout()
+button =  Button(G_controls[1,1], label = "A button")
+on(button.clicks) do n
+    println("hello, world ", n)
+end
 
 #sleep(5)
 # animate
