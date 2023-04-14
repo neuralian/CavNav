@@ -29,6 +29,12 @@ function +(p::Point{2,Float32}, q::Observable{Point{2, Float32}})
     lift(s->p+q[],t)
 end
 
+import Base.-
+function -(a::Float64, b::Observable)
+    # float + observable
+    lift(s->a.-b[],t)
+end
+
 import Base.*
 function *(a::Float64, b::Observable)
     lift(s->a*b[],t)
@@ -54,7 +60,7 @@ mutable struct Component
     pos::Observable{Point{2, Float32}}      # position in parent frame
     Θ::Observable{Float32}                  # orientation in parent frame  
     jitter::Tuple{Point{2,Float32}, Float32}  # current jitter state (dr, dΘ), is subtracted before jitter
-    jitterScale::Tuple{Float32, Float32}   # scaling for jitter stepsize and angle
+    jitterScale::Tuple{Float32, Float32, Float32}     # scaling for jitter x & y stepsize and angle
     state::Int64  # countable states  
     param::Vector{Float64}
     colour::Union{RGB{Float64}, Symbol}
@@ -74,7 +80,7 @@ function Component(name::String)
                 Observable(Point2f(0.0, 0.0)),  # pos
                 Observable(0.0),                # orientation  
                 (Point2f(0,0), 0.0),            # jitter
-                (1.0, 1.0),
+                (1.0, 1.0, 1.0),                     #jitter scale
                 1,                              # state
                 [],                             # parameters
                 RGB(0.,0.,0.),                     # colour 
@@ -124,19 +130,16 @@ end
 
 function jitter(c::Component, dr::Float32, dΘ::Float32)
 
-    # unjitter (subtract prior jitter state)
     rotate(c, Float64(-c.jitter[2]))
     move(c, -c.jitter[1])
 
     # random step
-    jStepLen = c.jitterScale[1]*dr*randn()[]
-    jStepDir = rand()[]
-    jStep = Point2f([jStepLen*cos(jStepDir), jStepLen*sin(jStepDir)])
+    step = Point2f(c.jitterScale[1]*dr*randn()[], c.jitterScale[2]*dr*randn()[])
     # random turn
-    jRot = c.jitterScale[2]*dΘ*(2.0*rand()[]-1.0)
-    move(c,jStep)
-    rotate(c, jRot)
-    c.jitter = (jStep, jRot)
+    rot = c.jitterScale[3]*dΘ*(2.0*rand()[]-1.0)
+    move(c,step)
+    rotate(c, rot)
+    c.jitter = (step, rot)
 
     for ch in c.child
         jitter(ch, dr, dΘ)
@@ -144,6 +147,15 @@ function jitter(c::Component, dr::Float32, dΘ::Float32)
 end
 
 
+function dejitter(c::Component)
+        # return to unjittered configuration
+    rotate(c, Float64(-c.jitter[2]))
+    move(c, -c.jitter[1])
+    c.jitter = (Point2f(0,0), 0.0)
+    for ch in c.child
+        dejitter(ch)
+    end
+end
 
 
 
