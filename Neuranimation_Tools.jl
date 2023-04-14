@@ -53,6 +53,8 @@ mutable struct Component
     restpos::Vector{Point{2, Float32}}      # rest position in parent frame in ith state
     pos::Observable{Point{2, Float32}}      # position in parent frame
     Θ::Observable{Float32}                  # orientation in parent frame  
+    jitter::Tuple{Point{2,Float32}, Float32}  # current jitter state (dr, dΘ), is subtracted before jitter
+    jitterScale::Tuple{Float32, Float32}   # scaling for jitter stepsize and angle
     state::Int64  # countable states  
     param::Vector{Float64}
     colour::Union{RGB{Float64}, Symbol}
@@ -71,6 +73,8 @@ function Component(name::String)
                 [Point2f(0.0, 0.0)],            # restpos                    
                 Observable(Point2f(0.0, 0.0)),  # pos
                 Observable(0.0),                # orientation  
+                (Point2f(0,0), 0.0),            # jitter
+                (1.0, 1.0),
                 1,                              # state
                 [],                             # parameters
                 RGB(0.,0.,0.),                     # colour 
@@ -99,10 +103,12 @@ end
 #     handle
 # end
 
-function randomstep(c::Component, dx::Float32, dy::Float32)
-    # random step
+function randomstep(c::Component, dr::Float32)
+    # random step of average length r
     # repeated calls produce Brownian motion
-    J = Point2f([dx*randn(), dy*randn()])
+    s = dr*randn()[]
+    q = rand()[]
+    J = Point2f([s*cos(q), s*sin(q)])
     move(c, J)
     J
 end
@@ -114,6 +120,32 @@ function stepback(c::Component, J::Point2f)
     # nb its just an alias for move()
     move(c, J)
 end
+
+
+function jitter(c::Component, dr::Float32, dΘ::Float32)
+
+    # unjitter (subtract prior jitter state)
+    rotate(c, Float64(-c.jitter[2]))
+    move(c, -c.jitter[1])
+
+    # random step
+    jStepLen = c.jitterScale[1]*dr*randn()[]
+    jStepDir = rand()[]
+    jStep = Point2f([jStepLen*cos(jStepDir), jStepLen*sin(jStepDir)])
+    # random turn
+    jRot = c.jitterScale[2]*dΘ*(2.0*rand()[]-1.0)
+    move(c,jStep)
+    rotate(c, jRot)
+    c.jitter = (jStep, jRot)
+
+    for ch in c.child
+        jitter(ch, dr, dΘ)
+    end
+end
+
+
+
+
 
 function adopt(me::Component)
     # add shape to child list of its parent
@@ -129,11 +161,21 @@ function move(c::Component, v::Point{2, Float32})
     c.pos = v + c.pos
 end
 
-function rotate(c::Component, p::Point{2, Float32}, Θ::Float64)
-     # rotate thru angle Θ around point p in parent frame
-     R = [cos(Θ) -sin(Θ); sin(Θ) cos(Θ)]
-    c.vertex = [Point2f(R*(v-c.restpos[1])) for v in c.vertex]
-     
+function rotate(c::Component,  Θ::Float64)
+    # rotate component thru angle Θ around its origin
+    # all descendents rotate around the same origin
+    # nb to rotate a component (and descendents) around any point,
+    # place a parent component (an axle) at that point and rotate the axle
+    c.Θ = Θ + c.Θ
+    R = rotationMatrix(Θ)
+    c.vertex = [Point2f(R*v) for v in c.vertex]
+    for ch in c.child
+        rotate(ch,Θ)
+    end
+end
+
+function rotationMatrix(Θ)
+    [cos(Θ) -sin(Θ); sin(Θ) cos(Θ)]
 end
 
 function worldPos(c::Component)
@@ -141,7 +183,7 @@ function worldPos(c::Component)
     if c.parent==nothing
         return c.pos[]
     else
-      return c.pos[] + worldPos(c.parent)
+      return rotationMatrix(c.parent.Θ[])*c.pos[] + worldPos(c.parent)
     end
 end
 
