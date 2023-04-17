@@ -168,6 +168,18 @@ function adopt(me::Component)
     end
 end
 
+function getChild(c::Component, name::String)
+    # return child of c whose name is name
+    for ch in c.child
+        if(ch.name==name) 
+            return ch
+        end
+    end
+    println("Error: ", c.name, " has no child named ", name, ".")
+    return nothing
+end
+
+
 function move(c::Component, v::Point{2, Float32})
     # change position
     c.pos = v + c.pos
@@ -284,3 +296,5 @@ function xpillShape(h::Float64, w::Float64, r::Union{Float64, Tuple{Float64,Floa
     v = append!([(w, h), (w, -h) ], [(-w, -h), (-w, h)])
     [Point2f(v[i]) for i in 1:length(v)]
 end
+
+
