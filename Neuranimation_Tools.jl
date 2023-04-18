@@ -1,43 +1,43 @@
 import Base.+
 function +(a::Float64, b::Observable)
     # float + observable
-    lift(s->a.+b[],t)
+    a.+b[]
 end
 
 function +(a::Array{Float64}, b::Observable)
     # float array + observable
-    lift(s->a.+b[],t)
+    a.+b[]
 end
 
 function +(a::Observable, b::Observable)
     # observable + observable
-    lift(s->a[].+b[],t)
+    a[].+b[]
 end
 
 function +(p::Point{2,Float32}, verts::Observable{Vector{Point{2, Float32}}})
     # point + observable vertices
-    lift(s->[p + v for v in verts[]],t)
+    [p + v for v in verts[]]
 end
 
 function +(p::Observable{Point{2,Float32}}, verts::Observable{Vector{Point{2, Float32}}})
     # observable point + observable vertices
-    lift(s->[p[] + v for v in verts[]],t)
+    [p[] + v for v in verts[]]
 end
 
 function +(p::Point{2,Float32}, q::Observable{Point{2, Float32}})
     # observable point + observable vertices
-    lift(s->p+q[],t)
+    p+q[]
 end
 
 import Base.-
 function -(a::Float64, b::Observable)
     # float + observable
-    lift(s->a.-b[],t)
+    a.-b[]
 end
 
 import Base.*
 function *(a::Float64, b::Observable)
-    lift(s->a*b[],t)
+    a*b[]
 end
 
 # animation utilities
@@ -253,8 +253,8 @@ function draw_lipidbilayer(ax::Axis, y::Float64, headsize::Float64, taillength::
 
     for i in 1:n
         for j in headsize*[-1,1]/2.5
-            lines!(ax, x_pos[i]+j+lift(s->hNoise1[][i].+vcat([0.0],randn(ntail)/16.0),t), y.+lipid_tail_h.+0.025+lift(s->vNoise1[][i], t), color = :bisque, linewidth = 3) 
-            lines!(ax, x_pos[i]+j+lift(s->hNoise1[][i].+vcat([0.0],randn(ntail)/16.0),t), y.-lipid_tail_h.-0.025+lift(s->vNoise1[][i], t), color = :bisque, linewidth = 3) 
+            lines!(ax, lift(s->x_pos[i].+j.+hNoise1[][i].+vcat([0.0],randn(ntail)/16.0),t), lift(s->y.+lipid_tail_h.+0.025.+vNoise1[][i], t), color = :bisque, linewidth = 3) 
+            lines!(ax, lift(s->x_pos[i].+j.+hNoise1[][i].+vcat([0.0],randn(ntail)/16.0),t), lift(s->y.-lipid_tail_h.-0.025.+vNoise1[][i], t), color = :bisque, linewidth = 3) 
         end
     end
 
@@ -284,17 +284,17 @@ function pillShape(w::Float64, h::Float64, r::Union{Float64, Tuple{Float64,Float
     # [Point2f(v[i]) for i in 1:length(v)]
 end
 
-function xpillShape(h::Float64, w::Float64, r::Union{Float64, Tuple{Float64,Float64,Float64,Float64 }})
-    # losenge shape generator
-    # width w, height h; r = (r1,r2,r3,r4) fillet radius on each corner anticlockwise from top right
-    # or r = a float for the same fillet on all corners 
-    # returns Vector{Point2f} of vertices, centred at (0,0)
-    h = h/2.
-    w = w/2.
-    N = 5  # number of fillet segments
+# function xpillShape(h::Float64, w::Float64, r::Union{Float64, Tuple{Float64,Float64,Float64,Float64 }})
+#     # losenge shape generator
+#     # width w, height h; r = (r1,r2,r3,r4) fillet radius on each corner anticlockwise from top right
+#     # or r = a float for the same fillet on all corners 
+#     # returns Vector{Point2f} of vertices, centred at (0,0)
+#     h = h/2.
+#     w = w/2.
+#     N = 5  # number of fillet segments
      
-    v = append!([(w, h), (w, -h) ], [(-w, -h), (-w, h)])
-    [Point2f(v[i]) for i in 1:length(v)]
-end
+#     v = append!([(w, h), (w, -h) ], [(-w, -h), (-w, h)])
+#     [Point2f(v[i]) for i in 1:length(v)]
+# end
 
 

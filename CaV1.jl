@@ -105,27 +105,38 @@ nframes = 64
 #sleep(5)
 # animate
 
-function animateScene()
-    for i in 1:nframes
-        #  ablob[] = move(ablob, Point2f(randn()*h_noise_ampl,randn()*v_noise_ampl))
-        # ablob[] = (Point2f(0.1,0.0)+ablob)[]
-        #base.pos[] = base.restpos[base.state] + 0.1*randn(Point2f, 1)[]
-        # move(c1, Point2f(.025, 0.0))
-        # move(CaV, Point2f(0.0, .025))
+function animationStep()
+
         jitter(CaV, 0.1f0, 0.05f0)   # thermal noise perturbation
-        t[] = i
-
-        sleep(0.1 / framerate)
-
-    end
 
 end
 
 
-animateScene()
 
-AnimateButton = Button(G_controls[2, 4], label="ANIMATE", tellwidth=false)
-on(AnimateButton.clicks) do n
-    println(n)
-    animateScene()
+
+runButton = Button(G_controls[2, 4], label="RUN", tellwidth=false)
+
+isRunning = Observable(false)
+on(runButton.clicks) do clicks
+    if isRunning[]
+        isRunning[] = false
+        runButton.label = "RUN"
+    else
+        isRunning[] = true
+        runButton.label = "PAUSE"
+    end
+end
+
+on(runButton.clicks) do clicks
+    @async  while isRunning[]
+        isopen(fig.scene) || break
+        animationStep()
+        t[] = 1
+        sleep(0.1 / framerate)
+        yield()
+    end
+end
+
+function touch()
+    t[] = 1
 end
