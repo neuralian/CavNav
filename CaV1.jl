@@ -7,7 +7,7 @@ include("Neuranimation_Tools.jl")
 include("CaV_components.jl")
 
 px_per_nm = 30.0    # pixels per nm
-px_wide = 1920
+px_wide = 1440
 px_high = 1080
 
 view_wide = px_wide / px_per_nm
@@ -22,29 +22,40 @@ G_trace = fig[2, 1] = GridLayout(tellwidth=false, tellheight=false)   # voltage 
 G_plot = fig[1, 2] = GridLayout(tellwidth=false, tellheight=false)   # diagram of receptor cell  top right
 G_controls = fig[2, 2] = GridLayout(tellwidth=false, tellheight=false)   # controls bottom right
 
-colsize!(fig.layout, 1, Relative(0.5))
+colsize!(fig.layout, 1, Relative(2/3))
 rowsize!(fig.layout, 1, Relative(2 / 3))
 
 Ax_Animation = Axis(G_animation[1, 1],
     backgroundcolor=:lightblue,
-    aspect=32 / 24,
+    aspect=32 / 24
 )
 
 xlims!(Ax_Animation, [-xmax, xmax])
 ylims!(Ax_Animation, [-ymax, ymax])
-#hidedecorations!(Ax_Animation)
+hidedecorations!(Ax_Animation)
 
 Ax_currentTrace = Axis(G_trace[1, 1])
 #rowsize!(fig.layout, 2, Fixed(100))
 Ax_voltageTrace = Axis(G_trace[2, 1])
 #rowsize!(fig.layout, 3, Fixed(100))
 
-Ax_Plot = Axis(G_plot[1, 1], aspect=1.0)
-
+vMin = -80.0
+vMax = 20.0
+v = vMin:vMax
+Ax_BoltzmannCurves = Axis(G_plot[1, 1], aspect=2.0, backgroundcolor = RGB(.975,0.95,0.925), title = "CaV")
+xlims!(vMin, vMax)
+ylims!(0.0, 1.05)
 #colsize!(fig.layout, 1, Relative(.67))
 
 
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, tCaV_Ap50, tCaV_Ak), color = RGB(0.8, 0.9, 0.6), linewidth = 2)
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, tCaV_Ip50, tCaV_Ik), color = RGB(0.8, 0.9, 0.6), linewidth = 2)
 
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, rCaV_Ap50, rCaV_Ak), color = RGB(1.0, 0.8, 0.6), linewidth = 2)
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, rCaV_Ip50, rCaV_Ik), color = RGB(1.0, 0.8, 0.6), linewidth = 2)
+
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ap50, sCaV_Ak), color = RGB(.4, .4, .8), linewidth = 4)
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ip50, sCaV_Ik), color =  RGB(.4, .4, .8), linewidth = 4)
 
 
 display(fig)
@@ -68,13 +79,19 @@ draw_ions(Ax_Animation, nK, (-xmax, -ymax, 2.0 * xmax, ymax - tail_length - head
 draw_ions(Ax_Animation, nK / 50, (-xmax, apical_membrane_y + tail_length + head_width, 2.0 * xmax, ymax - apical_membrane_y), colorant"magenta", ionSize)
 draw_ions(Ax_Animation, nCa / 50, (-xmax, -ymax, 2.0 * xmax, ymax - tail_length - head_width), colorant"darkgoldenrod", ionSize)
 
-draw_lipidbilayer(Ax_Animation, apical_membrane_y, head_width, tail_length, (0.05, 0.2))
+draw_lipidbilayer(Ax_Animation, apical_membrane_y, head_width, tail_length, (0.1, 0.5))
 
-CaV_location = -14.0
+CaV_location = -13.0
 CaV = make_CaV(CaV_location)    # CaV object 
 CaVIGa = getChild(CaV, "CaVIG.axis") # inactivation gate rotates around this axis
-
 draw(Ax_Animation, CaV)
+
+
+BK_location = 13.0
+BK= make_BK(BK_location)    # CaV object 
+draw(Ax_Animation, BK)
+
+
 
 
 vMax = 25.0
@@ -89,11 +106,6 @@ end
 
 # controls
 #G_controls = buttongrid = GridLayout()
-ResetButton = Button(G_controls[2, 2], label="RESET", tellwidth=false)
-on(ResetButton.clicks) do n
-    dejitter(CaV)
-    t[] = 1
-end
 
 framerate = 12
 nframes = 64
@@ -108,7 +120,7 @@ nframes = 64
 function animationStep()
 
         jitter(CaV, 0.1f0, 0.05f0)   # thermal noise perturbation
-
+        jitter(BK, 0.1f0, 0.05f0) 
 end
 
 
@@ -137,6 +149,17 @@ on(runButton.clicks) do clicks
     end
 end
 
+ResetButton = Button(G_controls[2, 2], label="RESET", tellwidth=false)
+on(ResetButton.clicks) do n
+    isRunning[] = false
+    runButton.label = "RUN"    
+    dejitter(CaV)
+    dejitter(BK)
+    t[] = 1
+end
+
+
+# @time touch()  # how long does it take to update scene?
 function touch()
     t[] = 1
 end

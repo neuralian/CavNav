@@ -170,29 +170,60 @@ function make_BK(location::Float64)
     BKRCK1c = Component("BKRCK1c")
     BKRCK1c.vertex = pillShape(0.65, tail_length, 0.2)
     BKRCK1c.colour = BK_colour
-    BKRCK1c.restpos = [Point2f(0.0, -5.0)]
+    BKRCK1c.restpos = [Point2f(0.5, -5.0)]
     BKRCK1c.pos[] = BKRCK1c.restpos[1]
     BKRCK1c.jitterScale = (1.0, 1.0, 1.0)
     BKRCK1c.parent = BKs6II
     adopt(BKRCK1c)
 
-    # BKIGc = Component("BKIG.chain")
-    # BKIGc.vertex = pillShape(1.5, 0.5, 0.2)
-    # BKIGc.colour = RGB(0.9, 0.75, 0.4)
-    # BKIGc.restpos = [Point2f(0.75, 0.0)]
-    # BKIGc.pos[] = BKIGc.restpos[1]
-    # BKIGc.parent = BKIGa
-    # adopt(BKIGc)
+    BKRCK1 = Component("BKRCK1")
+    BKRCK1.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK1.colour = BK_colour
+    BKRCK1.restpos = [Point2f(-1.0, -1.0)]
+    BKRCK1.pos[] = BKRCK1.restpos[1]
+    BKRCK1.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK1.parent = BKRCK1c
+    adopt(BKRCK1)
 
-    # BKIG = Component("BKIG")
-    # BKIG.vertex = decompose(Point2f, Circle(Point2f(0, 0), 1.25f0))
-    # BKIG.colour = RGB(0.9, 0.75, 0.4)
-    # BKIG.restpos = [Point2f(1.8, 0.0)]
-    # BKIG.pos[] = BKIG.restpos[1]
-    # BKIG.parent = BKIGc
-    # adopt(BKIG)
+    # Ca regulator
+    # connector to RCK1
+    BKRCK2c = Component("BKRCK2c")
+    BKRCK2c.vertex = pillShape(0.65, tail_length, 0.2)
+    BKRCK2c.colour = BK_colour
+    BKRCK2c.restpos = [Point2f(-1.0, -1.0)]
+    BKRCK2c.pos[] = BKRCK2c.restpos[1]
+    BKRCK2c.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2c.parent = BKRCK1
+    adopt(BKRCK2c)
 
-    # rotate(BKIGa, -π / 4)
+    BKRCK2 = Component("BKRCK2")
+    BKRCK2.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK2.colour = BK_colour
+    BKRCK2.restpos = [Point2f(1.0, -1.0)]
+    BKRCK2.pos[] = BKRCK2.restpos[1]
+    BKRCK2.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2.parent = BKRCK2c
+    adopt(BKRCK2)
+
 
     BK
 end
+
+
+# shark CaV1.3 channel parameters Bellono et al. 2017
+sCaV_Ap50 = -42.68   # sCaV activation channel open prob is 0.5 at -40mV
+sCaV_Ak = 5.0   # sCaV activation channel open prob is 1.0 at -20mV
+sCaV_Ip50  = -42.0   # inactivation
+sCaV_Ik = -6.0
+ 
+# rat CaV1.3 channel parameters Bellono et al. 2017
+rCaV_Ap50 = -18.16
+rCaV_Ak = 5.0
+rCaV_Ip50 = -42.0
+rCaV_Ik = -5.0
+
+# trichoplax CaV1 channel parameters Gauberg et al. 2022
+tCaV_Ap50 = -27.9
+tCaV_Ak   = 8.4
+tCaV_Ip50 = -55.9
+tCaV_Ik = -7.85

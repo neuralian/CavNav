@@ -284,17 +284,8 @@ function pillShape(w::Float64, h::Float64, r::Union{Float64, Tuple{Float64,Float
     # [Point2f(v[i]) for i in 1:length(v)]
 end
 
-# function xpillShape(h::Float64, w::Float64, r::Union{Float64, Tuple{Float64,Float64,Float64,Float64 }})
-#     # losenge shape generator
-#     # width w, height h; r = (r1,r2,r3,r4) fillet radius on each corner anticlockwise from top right
-#     # or r = a float for the same fillet on all corners 
-#     # returns Vector{Point2f} of vertices, centred at (0,0)
-#     h = h/2.
-#     w = w/2.
-#     N = 5  # number of fillet segments
-     
-#     v = append!([(w, h), (w, -h) ], [(-w, -h), (-w, h)])
-#     [Point2f(v[i]) for i in 1:length(v)]
-# end
 
 
+function pBoltzmann(v::Float64, v0::Float64, λ::Float64)
+    1.0 - 1.0/(1.0+exp((v-v0)/λ))
+end
