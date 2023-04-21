@@ -42,11 +42,15 @@ Ax_voltageTrace = Axis(G_trace[2, 1])
 vMin = -80.0
 vMax = 20.0
 v = vMin:vMax
-Ax_BoltzmannCurves = Axis(G_plot[1, 1], aspect=2.0, backgroundcolor = RGB(.975,0.95,0.925), title = "CaV")
+sColour = RGB(.4, .4, .8)
+tColour = RGB(0.8, 0.9, 0.6)
+rColour = RGB(1.0, 0.8, 0.6)
+Ax_BoltzmannCurves = Axis(G_plot[1, 1], aspect=2.0, backgroundcolor = RGB(.975,0.95,0.925), title = "CaV 1.3 (L-type)")
 xlims!(vMin, vMax)
 ylims!(0.0, 1.05)
-#colsize!(fig.layout, 1, Relative(.67))
-
+text!(0.0, 0.5; text = "Shark", color = sColour)
+text!(0.0, 0.4; text = "Trichoplax", color = RGBA(tColour, .85))
+text!(0.0, 0.3; text = "Rat", color = rColour*.85)
 
 lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, tCaV_Ap50, tCaV_Ak), color = RGB(0.8, 0.9, 0.6), linewidth = 2)
 lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, tCaV_Ip50, tCaV_Ik), color = RGB(0.8, 0.9, 0.6), linewidth = 2)
@@ -54,8 +58,8 @@ lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, tCaV_Ip50, tCaV_Ik), color = RGB(0.
 lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, rCaV_Ap50, rCaV_Ak), color = RGB(1.0, 0.8, 0.6), linewidth = 2)
 lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, rCaV_Ip50, rCaV_Ik), color = RGB(1.0, 0.8, 0.6), linewidth = 2)
 
-lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ap50, sCaV_Ak), color = RGB(.4, .4, .8), linewidth = 4)
-lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ip50, sCaV_Ik), color =  RGB(.4, .4, .8), linewidth = 4)
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ap50, sCaV_Ak), color = RGB(.4, .4, .8), linewidth = 3)
+lines!(Ax_BoltzmannCurves, v, pBoltzmann.(v, sCaV_Ip50, sCaV_Ik), color =  RGB(.4, .4, .8), linewidth = 3)
 
 
 display(fig)

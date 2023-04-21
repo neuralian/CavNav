@@ -1,15 +1,32 @@
-function make_CaV(location::Float64)
-    # CaV channel
+function make_CaV(location::Tuple{Float64, Float64}, Θ::Float64)
+    # CaV channel, orientation Θ (0 = upright, π = upside-down)
+
+    R = rotationMatrix(Θ)
+
 
     CaV_colour = RGB(0.722,0.525,0.043)*0.8
     CaVα1I_wide = 3.0   # width of α1.I subunit
 
     sLen = tail_length + 2.5 * head_width
-    CaV = Component("CaV")  # channel pore is parent of other components
-    CaV.vertex = Point2f[(-3.0, -sLen), (3.0, -sLen), (3.0, sLen), (-3.0, sLen)]
-    CaV.colour = :lightblue
-    CaV.restpos = [Point2f(location, apical_membrane_y)]
-    CaV.pos[] = CaV.restpos[1]
+ 
+
+
+    CaV_axis = Component("CaV_axis")
+    CaV_axis.vertex = decompose(Point2f, Circle(Point2f(0, 0), 0.25f0))
+    CaV_axis.colour = :lightblue
+    CaV_axis.restpos =  [Point2f(location)]
+    CaV_axis.pos[] = CaV_axis.restpos[1]
+    CaV_axis.jitterScale = (0.0, 0.0, 0.0)
+
+    CaVpore = Component("CaV_pore")  # channel pore is parent of other components
+    CaVpore.vertex = Point2f[[-3.0, -sLen], [3.0, -sLen], [3.0, sLen], [-3.0, sLen]]
+    CaVpore.colour = :lightblue
+    CaVpore.restpos = [Point2f(0.0, 0.0)]
+    CaVpore.pos[] = CaVpore.restpos[1]
+    CaVpore.parent = CaV_axis
+    adopt(CaVpore)
+
+
 
     # gate (s6)
     CaVs6I = Component("Cavs6.I")
@@ -18,7 +35,7 @@ function make_CaV(location::Float64)
     CaVs6I.jitterScale = (3.0, 1.0, 0.5)
     CaVs6I.restpos = [Point2f(-1.5, 0.0)]
     CaVs6I.pos[] = CaVs6I.restpos[1]
-    CaVs6I.parent = CaV
+    CaVs6I.parent = CaV_axis
     adopt(CaVs6I)
 
     CaVs6II = Component("Cavs6.II")
@@ -27,7 +44,7 @@ function make_CaV(location::Float64)
     CaVs6II.jitterScale = (3.0, 1.0, 0.5)
     CaVs6II.restpos = [Point2f(1.5, 0.0)]
     CaVs6II.pos[] = CaVs6II.restpos[1]
-    CaVs6II.parent = CaV
+    CaVs6II.parent = CaV_axis
     adopt(CaVs6II)
 
 
@@ -36,14 +53,14 @@ function make_CaV(location::Float64)
     CaVα1I.colour = CaV_colour
     CaVα1I.restpos = [Point2f(-2.25, 0.0)]  # position to left of pore
     CaVα1I.pos[] = CaVα1I.restpos[1]
-    CaVα1I.parent = CaV
+    CaVα1I.parent = CaV_axis
     adopt(CaVα1I)
 
     CaVα1II = mirrorCopy(CaVα1I, "CaVα1II")
     CaVα1II.colour = CaV_colour
     CaVα1II.restpos = [Point2f(2.25, 0.0)]  # position to right of pore
     CaVα1II.pos[] = CaVα1II.restpos[1]
-    CaVα1II.parent = CaV
+    CaVα1II.parent = CaV_axis
     adopt(CaVα1II)
 
     # voltage sensor (s4)
@@ -53,7 +70,7 @@ function make_CaV(location::Float64)
     CaVs4I.outline = 0.1
     CaVs4I.restpos = [Point2f(-1.5, -0.75)]
     CaVs4I.pos[] = CaVs4I.restpos[1]
-    CaVs4I.parent = CaV
+    CaVs4I.parent = CaV_axis
     adopt(CaVs4I)
 
     CaVs4II = Component("Cavs4.II")
@@ -62,7 +79,7 @@ function make_CaV(location::Float64)
     CaVs4II.outline = 0.1
     CaVs4II.restpos = [Point2f(1.5, -0.75)]
     CaVs4II.pos[] = CaVs4II.restpos[1]
-    CaVs4II.parent = CaV
+    CaVs4II.parent = CaV_axis
     adopt(CaVs4II)
 
     # inactivation gate, ball and chain rotating around axis
@@ -72,7 +89,7 @@ function make_CaV(location::Float64)
     CaVIGa.restpos = [Point2f(-2.5, -4.65)]
     CaVIGa.pos[] = CaVIGa.restpos[1]
     CaVIGa.jitterScale = (0.0, 0.0, 8.0)
-    CaVIGa.parent = CaV
+    CaVIGa.parent = CaV_axis
     adopt(CaVIGa)
 
     CaVIGc = Component("CaVIG.chain")
@@ -93,7 +110,7 @@ function make_CaV(location::Float64)
 
     rotate(CaVIGa, -π / 4)
 
-    CaV
+    CaV_axis
 end
 
 
@@ -165,46 +182,83 @@ function make_BK(location::Float64)
     BKs4II.parent = BK
     adopt(BKs4II)
 
-    # Mg regulator
-    # connector to S6
-    BKRCK1c = Component("BKRCK1c")
-    BKRCK1c.vertex = pillShape(0.65, tail_length, 0.2)
-    BKRCK1c.colour = BK_colour
-    BKRCK1c.restpos = [Point2f(0.5, -5.0)]
-    BKRCK1c.pos[] = BKRCK1c.restpos[1]
-    BKRCK1c.jitterScale = (1.0, 1.0, 1.0)
-    BKRCK1c.parent = BKs6II
-    adopt(BKRCK1c)
+    # RCKs  RIGHT
+    BKRCK1cR = Component("BKRCK1cR")
+    BKRCK1cR.vertex = pillShape(0.65, tail_length, 0.2)
+    BKRCK1cR.colour = BK_colour
+    BKRCK1cR.restpos = [Point2f(0.5, -4.5)]
+    BKRCK1cR.pos[] = BKRCK1cR.restpos[1]
+    BKRCK1cR.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK1cR.parent = BKs6II
+    adopt(BKRCK1cR)
 
-    BKRCK1 = Component("BKRCK1")
-    BKRCK1.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
-    BKRCK1.colour = BK_colour
-    BKRCK1.restpos = [Point2f(-1.0, -1.0)]
-    BKRCK1.pos[] = BKRCK1.restpos[1]
-    BKRCK1.jitterScale = (1.0, 1.0, 1.0)
-    BKRCK1.parent = BKRCK1c
-    adopt(BKRCK1)
+    BKRCK1R = Component("BKRCK1R")
+    BKRCK1R.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK1R.colour = BK_colour
+    BKRCK1R.restpos = [Point2f(1.0, -1.0)]
+    BKRCK1R.pos[] = BKRCK1R.restpos[1]
+    BKRCK1R.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK1R.parent = BKRCK1cR
+    adopt(BKRCK1R)
 
     # Ca regulator
     # connector to RCK1
-    BKRCK2c = Component("BKRCK2c")
-    BKRCK2c.vertex = pillShape(0.65, tail_length, 0.2)
-    BKRCK2c.colour = BK_colour
-    BKRCK2c.restpos = [Point2f(-1.0, -1.0)]
-    BKRCK2c.pos[] = BKRCK2c.restpos[1]
-    BKRCK2c.jitterScale = (1.0, 1.0, 1.0)
-    BKRCK2c.parent = BKRCK1
-    adopt(BKRCK2c)
+    BKRCK2cR = Component("BKRCK2cR")
+    BKRCK2cR.vertex = pillShape(0.65, 0.75*tail_length, 0.2)
+    BKRCK2cR.colour = BK_colour
+    BKRCK2cR.restpos = [Point2f(1.0, -1.0)]
+    BKRCK2cR.pos[] = BKRCK2cR.restpos[1]
+    BKRCK2cR.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2cR.parent = BKRCK1R
+    adopt(BKRCK2cR)
 
-    BKRCK2 = Component("BKRCK2")
-    BKRCK2.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
-    BKRCK2.colour = BK_colour
-    BKRCK2.restpos = [Point2f(1.0, -1.0)]
-    BKRCK2.pos[] = BKRCK2.restpos[1]
-    BKRCK2.jitterScale = (1.0, 1.0, 1.0)
-    BKRCK2.parent = BKRCK2c
-    adopt(BKRCK2)
+    BKRCK2R = Component("BKRCK2R")
+    BKRCK2R.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK2R.colour = BK_colour
+    BKRCK2R.restpos = [Point2f(-1.0, -0.95)]
+    BKRCK2R.pos[] = BKRCK2R.restpos[1]
+    BKRCK2R.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2R.parent = BKRCK2cR
+    adopt(BKRCK2R)
 
+    # RCKs LEFT
+    BKRCK1cL = Component("BKRCK1cL")
+    BKRCK1cL.vertex = pillShape(0.65, tail_length, 0.2)
+    BKRCK1cL.colour = BK_colour
+    BKRCK1cL.restpos = [Point2f(-0.5, -4.5)]
+    BKRCK1cL.pos[] = BKRCK1cL.restpos[1]
+    BKRCK1cL.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK1cL.parent = BKs6I
+    adopt(BKRCK1cL)
+
+    BKRCK1L = Component("BKRCK1R")
+    BKRCK1L.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK1L.colour = BK_colour
+    BKRCK1L.restpos = [Point2f(-1.0, -1.0)]
+    BKRCK1L.pos[] = BKRCK1L.restpos[1]
+    BKRCK1L.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK1L.parent = BKRCK1cL
+    adopt(BKRCK1L)
+
+    # Ca regulator
+    # connector to RCK1
+    BKRCK2cL = Component("BKRCK2c")
+    BKRCK2cL.vertex = pillShape(0.65, 0.75*tail_length, 0.2)
+    BKRCK2cL.colour = BK_colour
+    BKRCK2cL.restpos = [Point2f(-1.0, -1.0)]
+    BKRCK2cL.pos[] = BKRCK2cL.restpos[1]
+    BKRCK2cL.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2cL.parent = BKRCK1L
+    adopt(BKRCK2cL)
+
+    BKRCK2L = Component("BKRCK2L")
+    BKRCK2L.vertex = pillShape(tail_length, tail_length/2.0, 1.0)
+    BKRCK2L.colour = BK_colour
+    BKRCK2L.restpos = [Point2f(1.0, -0.95)]
+    BKRCK2L.pos[] = BKRCK2L.restpos[1]
+    BKRCK2L.jitterScale = (1.0, 1.0, 1.0)
+    BKRCK2L.parent = BKRCK2cL
+    adopt(BKRCK2L)
 
     BK
 end
